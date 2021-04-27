@@ -22,7 +22,7 @@ const gameBoard = ((size = 3) => {
     const grid = document.querySelector('.main-grid');
     const winnerDiv = document.querySelector('.winner');
     const playerMarks = [...document.querySelectorAll('.player-mark')];
-    playerMarks[1].classList.add('mark-highlight');
+    playerMarks[1].classList.add('mark-highlight'); // reverse active player indicator
 
     // Board initialization IIFE
     const init = (() => {
@@ -123,10 +123,8 @@ const gameBoard = ((size = 3) => {
         board.forEach((row, i) => 
             row.forEach((el, j) => {
                 if (el === ' ') res.push(`${i}${j}`);
-            }))
-        // console.log(...board.join(',').split('').join(''))
-        // console.log(mark, res.join(','));
-        return res.join(',');
+            }));
+        return res;
     }
 
     return {grid, reset, render, update, hint, hideHint, getWinner, getOptions};
@@ -148,32 +146,21 @@ const gameFlow = (() => {
     // binding Events handlers
     playerTypes.forEach(el => el.addEventListener('click', togglePlayerType.bind(el)))
     btnRestart.addEventListener('click', restartGame);        
-
-    // play one turn on click
-    gameBoard.grid.addEventListener('click', playOneTurn);
-    setInterval(() => {
-        console.log(player.getMark())
-        if (turnCounter <= 9 && gameBoard.getWinner() === ' ' && player.getAI() === 'computer') {
-            const arr = gameBoard.getOptions().split(',');
-            const rnd = arr[Math.floor(Math.random() * arr.length)]
-            console.log(gameBoard.getOptions(), rnd)
-            if (gameBoard.update(rnd, player.getMark())) {
-                players.forEach(pl => pl.toggleCanMove());    
-                player = players.find(pl => pl.getMove());
-                turnCounter += 1;
-            };
-        }
-    }, 1500)
-    
     // show/hide hints
     gameBoard.grid.addEventListener('mouseover', (event) => gameBoard.hint(event.target.dataset.id, player.getMark()));
     [...gameBoard.grid.children].forEach(ch => 
         ch.addEventListener('mouseleave', (event) => gameBoard.hideHint(event.target.dataset.id)));
     
+    // play one turn -> on click (player controlled) OR periodically (AI controlled)
+    gameBoard.grid.addEventListener('click', playOneTurn);
+    setInterval(playOneTurn, 1500);
+    
     function playOneTurn(event) {
-        // console.log(player.getAI(), player.getMark())
-        if (turnCounter <= 9 && gameBoard.getWinner() === ' ' && player.getAI() === 'person')
-            if (gameBoard.update(event.target.dataset.id, player.getMark())) {
+        const [ ai, id ] = (event !== undefined) 
+            ? [ 'person', event.target.dataset.id ]
+            : [ 'computer', chooseAIMove() ]
+        if (turnCounter <= 9 && gameBoard.getWinner() === ' ' && player.getAI() === ai)
+            if (gameBoard.update(id, player.getMark())) {
                 players.forEach(pl => pl.toggleCanMove());    
                 player = players.find(pl => pl.getMove());
                 turnCounter += 1;
@@ -194,8 +181,12 @@ const gameFlow = (() => {
             players[this.id].toggleAI();
             [...this.children].forEach(span => span.classList.toggle('md-dark'));
         }
-        console.log(players.map(el=>el.getAI())) // -------------------------------------- to DELETE
     };
+
+    function chooseAIMove() { // Just random move from available options
+        const arr = gameBoard.getOptions();
+        return arr[Math.floor(Math.random() * arr.length)]
+    }
 
     function getTurn() {
         return turnCounter;
@@ -203,4 +194,3 @@ const gameFlow = (() => {
 
     return {getTurn};
 })();
-

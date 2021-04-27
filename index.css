@@ -97,7 +97,7 @@ body {
     text-align: center;
     font-size: .6rem;
     border: .15em solid var(--color-orange);
-    border-radius: 0.25em;
+    border-radius: 0.35em;
     padding: 0 0.5em;
     cursor: pointer;
     transition: .25s;
