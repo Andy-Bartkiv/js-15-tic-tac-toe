@@ -8,6 +8,7 @@
     font-family: Lato, sans-serif;
     font-size: 5vmin;
     --color-bgd: #202030;
+    --color-orange: #D0bb94;
     --color-orange: #ff4500;
 }
 
@@ -44,7 +45,7 @@ body {
 
 .header-title {
     font-size: 1rem;
-    width: 60%;
+    width: 50%;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -65,6 +66,11 @@ body {
     background-color: var(--color-orange);
 }
 
+.mark-tie {
+    background-color: var(--color-bgd);
+    color: var(--color-orange);
+}
+
 .material-icons { 
     font-size: 1rem;
     cursor: pointer;
@@ -77,7 +83,7 @@ body {
 }
 
 .material-icons.md-dark {
-    color: #ff450033;
+    color: #ff450044;
 }
 
 .player-type {
@@ -87,9 +93,9 @@ body {
 }
 
 .btn-restart {
-    width: 55%;
+    width: 70%;
     text-align: center;
-    font-size: .5rem;
+    font-size: .6rem;
     border: .15em solid var(--color-orange);
     border-radius: 0.25em;
     padding: 0 0.5em;
@@ -144,4 +150,10 @@ body {
     text-shadow: -1px -1px 5px #ff450055, 1px 1px 5px #000030;
     background: #ff4500bb;
     color:  #ff4500;
+  }
+
+  @media screen and (max-width: 500px) {
+    .container {
+        height: 120vmin;
+    }
   }

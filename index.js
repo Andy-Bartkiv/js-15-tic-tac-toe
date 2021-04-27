@@ -48,6 +48,7 @@ const gameBoard = ((size = 3) => {
         board = board.map(() => [' ', ' ', ' ']);
         winner = { mark: ' ', line: ''};
         winnerDiv.textContent = `TIC - TAC - TOE`;
+        playerMarks.forEach(el => el.classList.remove('mark-tie'));
         render();
     };
 
@@ -78,10 +79,9 @@ const gameBoard = ((size = 3) => {
                     const line = winner.line.split(',');
                     [...grid.children].filter(el => line.includes(el.dataset.id)).forEach(el => el.classList.add('winner-cell'))
                     winnerDiv.textContent = `Player  ${getWinner()}  wins!` ;
-                    playerMarks.forEach(el => el.classList.toggle('mark-highlight'))
-                } 
-                if (gameFlow.getTurn() >= 9) {
-                    playerMarks.forEach(el => el.classList.remove('mark-highlight'))
+                    playerMarks.forEach(el => el.classList.toggle('mark-highlight'));
+                } else if (gameFlow.getTurn() >= 9) {
+                    playerMarks.forEach(el => el.classList.add('mark-tie'));
                     winnerDiv.textContent = `It is a TIE`;
                 } 
             }
@@ -118,7 +118,18 @@ const gameBoard = ((size = 3) => {
         return winner.mark;
     }
 
-    return {grid, reset, render, update, hint, hideHint, getWinner};
+    function getOptions() {
+        const res = [];
+        board.forEach((row, i) => 
+            row.forEach((el, j) => {
+                if (el === ' ') res.push(`${i}${j}`);
+            }))
+        // console.log(...board.join(',').split('').join(''))
+        // console.log(mark, res.join(','));
+        return res.join(',');
+    }
+
+    return {grid, reset, render, update, hint, hideHint, getWinner, getOptions};
 
 })(); // End of gameBoard Module;
 
@@ -140,6 +151,19 @@ const gameFlow = (() => {
 
     // play one turn on click
     gameBoard.grid.addEventListener('click', playOneTurn);
+    setInterval(() => {
+        console.log(player.getMark())
+        if (turnCounter <= 9 && gameBoard.getWinner() === ' ' && player.getAI() === 'computer') {
+            const arr = gameBoard.getOptions().split(',');
+            const rnd = arr[Math.floor(Math.random() * arr.length)]
+            console.log(gameBoard.getOptions(), rnd)
+            if (gameBoard.update(rnd, player.getMark())) {
+                players.forEach(pl => pl.toggleCanMove());    
+                player = players.find(pl => pl.getMove());
+                turnCounter += 1;
+            };
+        }
+    }, 1500)
     
     // show/hide hints
     gameBoard.grid.addEventListener('mouseover', (event) => gameBoard.hint(event.target.dataset.id, player.getMark()));
@@ -147,7 +171,8 @@ const gameFlow = (() => {
         ch.addEventListener('mouseleave', (event) => gameBoard.hideHint(event.target.dataset.id)));
     
     function playOneTurn(event) {
-        if (turnCounter <= 9 && gameBoard.getWinner() === ' ')
+        // console.log(player.getAI(), player.getMark())
+        if (turnCounter <= 9 && gameBoard.getWinner() === ' ' && player.getAI() === 'person')
             if (gameBoard.update(event.target.dataset.id, player.getMark())) {
                 players.forEach(pl => pl.toggleCanMove());    
                 player = players.find(pl => pl.getMove());
