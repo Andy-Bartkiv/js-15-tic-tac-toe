@@ -8,6 +8,7 @@ const playerFactory = (mark, aiLvl = '') => {
     const toggleAI = () => { _ai = (_ai === 'person') ? 'computer' : 'person'};
     const getAILvl = () => _aiLvl;
     const toggleAILvl = () => { _aiLvl = (_aiLvl === '') ? 'star' : ''};
+    // const toggleAILvl = () => { _aiLvl = (_aiLvl === '') ? 'star_border' : (_aiLvl === 'star_border') ? 'star' : ''};
     const getMove = () => _canMove;
     const toggleCanMove = () => { _canMove = !(_canMove) };
     return {getMark, getAI, getAILvl, toggleAI, toggleAILvl, getMove, toggleCanMove}
@@ -76,11 +77,11 @@ const gameBoard = ((size = 3) => {
                 if (getWinner() !== ' ') {
                     const line = winner.line.split(',');
                     [...grid.children].filter(el => line.includes(el.dataset.id)).forEach(el => el.classList.add('winner-cell'))
-                    winnerDiv.textContent = `player  ${getWinner()}  wins` ;
+                    winnerDiv.textContent = `Player  ${getWinner()}  wins!` ;
                     playerMarks.forEach(el => el.classList.toggle('mark-highlight'));
                 } else if (gameFlow.getTurn() >= 9) {
                     playerMarks.forEach(el => el.classList.add('mark-tie'));
-                    winnerDiv.textContent = `it's a draw`;
+                    winnerDiv.textContent = `It's a draw!`;
                 } 
             }
             return true;    
