@@ -1,13 +1,15 @@
 // PLAYERS --------------------------------------
-const playerFactory = (mark) => {
+const playerFactory = (mark, aiLvl = 0) => {
     const getMark = () => mark;
     let _ai = 'person';
+    let _aiLvl = aiLvl;
     let _canMove = false;
     const getAI = () => _ai;
+    const getAILvl = () => _aiLvl;
     const toggleAI = () => { _ai = (_ai === 'person') ? 'computer' : 'person'};
     const getMove = () => _canMove;
     const toggleCanMove = () => { _canMove = !(_canMove) };
-    return {getMark, getAI, toggleAI, getMove, toggleCanMove}
+    return {getMark, getAI, getAILvl, toggleAI, getMove, toggleCanMove}
 };
 
 // GAME BOARD ----------------------------------
@@ -73,7 +75,7 @@ const gameBoard = ((size = 3) => {
         if (id && board[id[0]][id[1]] === ' ') {
             board[id[0]][id[1]] = mark;
             render();
-            if (gameFlow.getTurn() >= 5) { // 5
+            if (gameFlow.getTurn() >= 5) { // fastest win available at 5-th turn
                 winner = checkWinner();
                 if (getWinner() !== ' ') {
                     const line = winner.line.split(',');
@@ -82,7 +84,7 @@ const gameBoard = ((size = 3) => {
                     playerMarks.forEach(el => el.classList.toggle('mark-highlight'));
                 } else if (gameFlow.getTurn() >= 9) {
                     playerMarks.forEach(el => el.classList.add('mark-tie'));
-                    winnerDiv.textContent = `It is a TIE`;
+                    winnerDiv.textContent = `It's a TIE`;
                 } 
             }
             return true;    
@@ -114,26 +116,43 @@ const gameBoard = ((size = 3) => {
             : { mark: ' ', line: '' }
     }
 
-    function getWinner() {
-        return winner.mark;
-    }
+    function getWinner() { return winner.mark; }
 
     function getOptions() {
         const res = [];
-        board.forEach((row, i) => 
-            row.forEach((el, j) => {
-                if (el === ' ') res.push(`${i}${j}`);
-            }));
+        board.forEach((row, i) => row.forEach((el, j) => (el === ' ') && res.push(`${i}${j}`) ));
         return res;
     }
 
-    return {grid, reset, render, update, hint, hideHint, getWinner, getOptions};
+    function chooseAIMove(mark, aiLvl) { // Just random move from available options
+        const arr = getOptions();
+        const opponentMark = (mark === 'X') ? 'O' : 'X';
+        let ind = -1;
+        if (aiLvl !== 0) {
+        // check for player one-move win
+            ind = checkBoard(mark).indexOf(true);
+        // check for opponent one-move win
+            ind = (ind >= 0) ? ind : checkBoard(opponentMark).indexOf(true);
+        };
+        ind = (ind >= 0) ? ind : Math.floor(Math.random() * arr.length); 
+        return arr[ind];
+    }
 
+    function checkBoard(mark) {
+        return getOptions().map(el => {
+            board[el[0]][el[1]] = mark;
+            const res = checkWinner().mark !== ' ';
+            board[el[0]][el[1]] = ' ';
+            return res;
+        });
+    };
+
+    return {grid, reset, render, update, hint, hideHint, getWinner, chooseAIMove};
 })(); // End of gameBoard Module;
 
 // GAME FLOW ---------------------------------------------------------------------
 const gameFlow = (() => {
-    const players = [playerFactory("X"), playerFactory("O")];
+    const players = [playerFactory("X"), playerFactory("O", 1)];
     players[0].toggleCanMove();
     let player = players.find(pl => pl.getMove());
     let turnCounter = 1;
@@ -158,7 +177,7 @@ const gameFlow = (() => {
     function playOneTurn(event) {
         const [ ai, id ] = (event !== undefined) 
             ? [ 'person', event.target.dataset.id ]
-            : [ 'computer', chooseAIMove() ]
+            : [ 'computer', gameBoard.chooseAIMove(player.getMark(), player.getAILvl()) ]
         if (turnCounter <= 9 && gameBoard.getWinner() === ' ' && player.getAI() === ai)
             if (gameBoard.update(id, player.getMark())) {
                 players.forEach(pl => pl.toggleCanMove());    
@@ -183,14 +202,7 @@ const gameFlow = (() => {
         }
     };
 
-    function chooseAIMove() { // Just random move from available options
-        const arr = gameBoard.getOptions();
-        return arr[Math.floor(Math.random() * arr.length)]
-    }
-
-    function getTurn() {
-        return turnCounter;
-    };
+    function getTurn() { return turnCounter; };
 
     return {getTurn};
 })();
