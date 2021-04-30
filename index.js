@@ -1,31 +1,27 @@
 // PLAYERS --------------------------------------
-const playerFactory = (mark, aiLvl = 0) => {
+const playerFactory = (mark, aiLvl = '') => {
     const getMark = () => mark;
     let _ai = 'person';
     let _aiLvl = aiLvl;
     let _canMove = false;
     const getAI = () => _ai;
-    const getAILvl = () => _aiLvl;
     const toggleAI = () => { _ai = (_ai === 'person') ? 'computer' : 'person'};
+    const getAILvl = () => _aiLvl;
+    const toggleAILvl = () => { _aiLvl = (_aiLvl === '') ? 'star' : ''};
     const getMove = () => _canMove;
     const toggleCanMove = () => { _canMove = !(_canMove) };
-    return {getMark, getAI, getAILvl, toggleAI, getMove, toggleCanMove}
+    return {getMark, getAI, getAILvl, toggleAI, toggleAILvl, getMove, toggleCanMove}
 };
 
 // GAME BOARD ----------------------------------
 const gameBoard = ((size = 3) => {
-    let board = [
-        [' ', ' ', ' '],
-        [' ', ' ', ' '],
-        [' ', ' ', ' ']
-    ];
+    let board = [ [' ', ' ', ' '], [' ', ' ', ' '], [' ', ' ', ' ']];
     let winner = { mark: ' ', line: ''};
     // DOM caching 
     const grid = document.querySelector('.main-grid');
     const winnerDiv = document.querySelector('.winner');
     const playerMarks = [...document.querySelectorAll('.player-mark')];
     playerMarks[1].classList.add('mark-highlight'); // reverse active player indicator
-
     // Board initialization IIFE
     const init = (() => {
         for (let i = 0; i < size; i++)
@@ -80,11 +76,11 @@ const gameBoard = ((size = 3) => {
                 if (getWinner() !== ' ') {
                     const line = winner.line.split(',');
                     [...grid.children].filter(el => line.includes(el.dataset.id)).forEach(el => el.classList.add('winner-cell'))
-                    winnerDiv.textContent = `Player  ${getWinner()}  wins!` ;
+                    winnerDiv.textContent = `player  ${getWinner()}  wins` ;
                     playerMarks.forEach(el => el.classList.toggle('mark-highlight'));
                 } else if (gameFlow.getTurn() >= 9) {
                     playerMarks.forEach(el => el.classList.add('mark-tie'));
-                    winnerDiv.textContent = `It's a TIE`;
+                    winnerDiv.textContent = `it's a draw`;
                 } 
             }
             return true;    
@@ -128,7 +124,7 @@ const gameBoard = ((size = 3) => {
         const arr = getOptions();
         const opponentMark = (mark === 'X') ? 'O' : 'X';
         let ind = -1;
-        if (aiLvl !== 0) {
+        if (aiLvl !== '') {
         // check for player one-move win
             ind = checkBoard(mark).indexOf(true);
         // check for opponent one-move win
@@ -152,16 +148,15 @@ const gameBoard = ((size = 3) => {
 
 // GAME FLOW ---------------------------------------------------------------------
 const gameFlow = (() => {
-    const players = [playerFactory("X"), playerFactory("O", 1)];
+    const players = [playerFactory("X"), playerFactory("O")];
     players[0].toggleCanMove();
     let player = players.find(pl => pl.getMove());
+    // [...document.querySelectorAll('.comp-lvl')].forEach((el, ind) => el.textContent = players[ind].getAILvl())
     let turnCounter = 1;
-    gameBoard.reset();
-
+    const getTurn = () => turnCounter;
     // caching DOM
     const playerTypes = [...document.querySelectorAll('.player-type')]
     const btnRestart = document.querySelector('.btn-restart');    
-
     // binding Events handlers
     playerTypes.forEach(el => el.addEventListener('click', togglePlayerType.bind(el)))
     btnRestart.addEventListener('click', restartGame);        
@@ -169,7 +164,8 @@ const gameFlow = (() => {
     gameBoard.grid.addEventListener('mouseover', (event) => gameBoard.hint(event.target.dataset.id, player.getMark()));
     [...gameBoard.grid.children].forEach(ch => 
         ch.addEventListener('mouseleave', (event) => gameBoard.hideHint(event.target.dataset.id)));
-    
+    // reset game at the beginning
+    gameBoard.reset();
     // play one turn -> on click (player controlled) OR periodically (AI controlled)
     gameBoard.grid.addEventListener('click', playOneTurn);
     setInterval(playOneTurn, 1500);
@@ -199,10 +195,11 @@ const gameFlow = (() => {
         if (event.target.textContent !== players[this.id].getAI()) {
             players[this.id].toggleAI();
             [...this.children].forEach(span => span.classList.toggle('md-dark'));
+        } else if (event.target.textContent === 'computer') {
+            players[this.id].toggleAILvl();
+            this.children[1].children[1].textContent = players[this.id].getAILvl();
         }
     };
-
-    function getTurn() { return turnCounter; };
 
     return {getTurn};
 })();
