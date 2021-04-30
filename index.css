@@ -48,8 +48,12 @@ body {
     width: 50%;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: space-around;
     align-items: center;
+}
+
+.winner {
+    line-height: 0.9;
 }
 
 .player-mark {
@@ -72,7 +76,7 @@ body {
 }
 
 .material-icons { 
-    font-size: 1rem;
+    font-size: 1.25rem;
     cursor: pointer;
 }
 
@@ -88,7 +92,7 @@ body {
 .player-type {
     display: flex;
     flex-direction: column;
-    justify-content: space-evenly;
+    justify-content: space-between;
     transition: 0.25s;
 }
 
@@ -103,13 +107,13 @@ body {
     z-index: -1;
     position: absolute;
     bottom: .6em;
-    font-size: .5em;
+    font-size: .6em;
 }
 
 .btn-restart {
     width: 70%;
     text-align: center;
-    font-size: .6rem;
+    font-size: .7rem;
     border: .15em solid var(--color-orange);
     border-radius: 0.35em;
     padding: 0 0.5em;
