@@ -102,12 +102,12 @@ const gameBoard = ((size = 3) => {
             return res >= 0 ? ['0','1','2'].map(el => el + res).join(',') : '';
         }
         const dCheck = () => {  // check 2 diagonal lines 
-            const res = 2 * [0,2].map(z => (board[z][0] !== ' ') && board.map((row, i) => row[Math.abs(z - i)]).every(el => el === board[z][0]))
-                .indexOf(true);
-            return res >= 0 ? ['0','1','2'].map((el, i) => el + Math.abs(res - i)).join(',') : '';  
+            let res = [0,2].map(z => (board[z][0] !== ' ') && board.map((row, i) => row[Math.abs(z - i)]).every(el => el === board[z][0]));
+            res = res.map((val, ind) => val ? ['0','1','2'].map((el, i) => el + Math.abs(ind*2 - i)).join(',') : '');
+            return res.filter(el => el !== '').join(',');
         }
 
-        const resCheck = [hCheck(), vCheck(), dCheck()].join(''); // string representing results of all checks
+        const resCheck = [hCheck(), vCheck(), dCheck()].filter(el => el !== '').join(','); // string representing results of all checks
         const ind = resCheck.split(',')[0];
         return (resCheck.length > 0)
             ? { mark: board[ind[0]][ind[1]], line: resCheck }
