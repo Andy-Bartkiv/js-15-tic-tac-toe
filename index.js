@@ -128,7 +128,6 @@ const gameBoard = ((size = 3) => {
         let arr = getOptions();
         const opponentMark = (mark === 'X') ? 'O' : 'X';
         if (aiLvl !== '') { // if ai logic is "starred" (better than lvl=0)
-            // console.log(checkBoard1(mark));
         // "star border" (lvl=1) logic: check for player instant win
             ind = checkBoard(mark).indexOf(true);
         // "star border" (lvl=1) logic: check for opponent instant win
@@ -144,17 +143,16 @@ const gameBoard = ((size = 3) => {
                 const bestScore = (mark === 'O') ? Math.max(...xxx) : Math.min(...xxx);
                 // const bestScore = Math.max(...xxx);
                 arr = arr.filter((el, i) => xxx[i] === bestScore);
-                console.log(mark, scores[mark], 'ind', ind, 'xxx =', xxx);
+                // console.log(mark, scores[mark], 'ind', ind, 'xxx =', xxx);
             };
         };
 
         ind = (ind >= 0) ? ind : Math.floor(Math.random() * arr.length); 
-        console.log(arr, arr[ind]);
+        // console.log(arr, arr[ind]);
         return arr[ind];
     }
 
     function checkBoard(mark) { // returns matrix of false for empty positions, with true if filling position with 'mark' lead to win condition
-        // console.log(turnsLeft, getOptions());    
         return getOptions().map(el => {
             board[el[0]][el[1]] = mark;
             const res = checkWinner().mark !== ' ';
@@ -194,6 +192,7 @@ const gameBoard = ((size = 3) => {
 
 // GAME FLOW ---------------------------------------------------------------------
 const gameFlow = (() => {
+    let minimaxCalculated = null; // to calculate minimax only once per turn
     const players = [playerFactory("X"), playerFactory("O")];
     players[0].toggleCanMove();
     let player = players.find(pl => pl.getMove());
@@ -211,15 +210,21 @@ const gameFlow = (() => {
     gameBoard.reset();
     // play one turn -> on click (player controlled) OR periodically (AI controlled)
     gameBoard.grid.addEventListener('click', playOneTurn);
-    setInterval(playOneTurn, 1500);
+    setInterval(playOneTurn, 1000);
     
     function playOneTurn(event) {
+        if (!minimaxCalculated && player.getAI() === 'computer') {
+            Promise.resolve(gameBoard.chooseAIMove(player.getMark(), player.getAILvl()))
+                .then(val => minimaxCalculated = val);
+        }
         const [ control, id ] = (event !== undefined) 
             ? [ 'person', event.target.dataset.id ]
-            : [ 'computer', gameBoard.chooseAIMove(player.getMark(), player.getAILvl()) ]
+            : [ 'computer', minimaxCalculated ]
         if (gameBoard.isGameRunning() && gameBoard.getWinner() === ' ' && player.getAI() === control)
-            if (gameBoard.update(id, player.getMark()))
+            if (gameBoard.update(id, player.getMark())) {
                 togglePlayerTurn();
+                minimaxCalculated = null;
+            }
     };
 
     function restartGame() {
