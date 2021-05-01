@@ -7,8 +7,7 @@ const playerFactory = (mark, aiLvl = '') => {
     const getAI = () => _ai;
     const toggleAI = () => { _ai = (_ai === 'person') ? 'computer' : 'person'};
     const getAILvl = () => _aiLvl;
-    const toggleAILvl = () => { _aiLvl = (_aiLvl === '') ? 'star' : ''};
-    // const toggleAILvl = () => { _aiLvl = (_aiLvl === '') ? 'star_border' : (_aiLvl === 'star_border') ? 'star' : ''};
+    const toggleAILvl = () => { _aiLvl = (_aiLvl === '') ? 'star_border' : (_aiLvl === 'star_border') ? 'star' : ''};
     const getMove = () => _canMove;
     const toggleCanMove = () => { _canMove = !(_canMove) };
     return {getMark, getAI, getAILvl, toggleAI, toggleAILvl, getMove, toggleCanMove}
@@ -18,6 +17,9 @@ const playerFactory = (mark, aiLvl = '') => {
 const gameBoard = ((size = 3) => {
     let board = [ [' ', ' ', ' '], [' ', ' ', ' '], [' ', ' ', ' ']];
     let winner = { mark: ' ', line: ''};
+    const getWinner = () => winner.mark;
+    let turnsLeft = getOptions().length;
+    const isGameRunning = () => turnsLeft > 0;
     // DOM caching 
     const grid = document.querySelector('.main-grid');
     const winnerDiv = document.querySelector('.winner');
@@ -49,6 +51,7 @@ const gameBoard = ((size = 3) => {
         winnerDiv.textContent = `TIC - TAC - TOE`;
         playerMarks.forEach(el => el.classList.remove('mark-tie'));
         render();
+        turnsLeft = getOptions().length;
     };
 
     // at hover show if placing mark at cell is possible 
@@ -72,14 +75,15 @@ const gameBoard = ((size = 3) => {
         if (id && board[id[0]][id[1]] === ' ') {
             board[id[0]][id[1]] = mark;
             render();
-            if (gameFlow.getTurn() >= 5) { // fastest win available at 5-th turn
+            turnsLeft = getOptions().length
+            if (turnsLeft <= 4) { // fastest win available at 5-th turn
                 winner = checkWinner();
                 if (getWinner() !== ' ') {
                     const line = winner.line.split(',');
                     [...grid.children].filter(el => line.includes(el.dataset.id)).forEach(el => el.classList.add('winner-cell'))
                     winnerDiv.textContent = `Player  ${getWinner()}  wins!` ;
                     playerMarks.forEach(el => el.classList.toggle('mark-highlight'));
-                } else if (gameFlow.getTurn() >= 9) {
+                } else if (turnsLeft <= 0) {
                     playerMarks.forEach(el => el.classList.add('mark-tie'));
                     winnerDiv.textContent = `It's a draw!`;
                 } 
@@ -113,29 +117,44 @@ const gameBoard = ((size = 3) => {
             : { mark: ' ', line: '' }
     }
 
-    function getWinner() { return winner.mark; }
-
     function getOptions() {
         const res = [];
         board.forEach((row, i) => row.forEach((el, j) => (el === ' ') && res.push(`${i}${j}`) ));
         return res;
     }
 
-    function chooseAIMove(mark, aiLvl) { // Just random move from available options
-        const arr = getOptions();
-        const opponentMark = (mark === 'X') ? 'O' : 'X';
+    function chooseAIMove(mark, aiLvl) {
         let ind = -1;
-        if (aiLvl !== '') {
-        // check for player one-move win
+        let arr = getOptions();
+        const opponentMark = (mark === 'X') ? 'O' : 'X';
+        if (aiLvl !== '') { // if ai logic is "starred" (better than lvl=0)
+            // console.log(checkBoard1(mark));
+        // "star border" (lvl=1) logic: check for player instant win
             ind = checkBoard(mark).indexOf(true);
-        // check for opponent one-move win
+        // "star border" (lvl=1) logic: check for opponent instant win
             ind = (ind >= 0) ? ind : checkBoard(opponentMark).indexOf(true);
+        // "star" (lvl=2) logic
+            if (ind < 0 && aiLvl === 'star') {
+                const xxx = arr.map(el => {
+                    board[el[0]][el[1]] = mark;
+                    const res = minimax(opponentMark);
+                    board[el[0]][el[1]] = ' ';
+                    return res;
+                });
+            // const bestScore = (mark === 'O') ? Math.max(...xxx) : Math.min(...xxx);
+                const bestScore = Math.max(...xxx);
+                arr = arr.filter((el, i) => xxx[i] === bestScore);
+                console.log(mark, scores[mark], 'ind', ind, 'xxx =', xxx);
+            };
         };
+
         ind = (ind >= 0) ? ind : Math.floor(Math.random() * arr.length); 
+        console.log(arr, arr[ind]);
         return arr[ind];
     }
 
-    function checkBoard(mark) {
+    function checkBoard(mark) { // returns matrix of false for empty positions, with true if filling position with 'mark' lead to win condition
+        // console.log(turnsLeft, getOptions());
         return getOptions().map(el => {
             board[el[0]][el[1]] = mark;
             const res = checkWinner().mark !== ' ';
@@ -144,7 +163,33 @@ const gameBoard = ((size = 3) => {
         });
     };
 
-    return {grid, reset, render, update, hint, hideHint, getWinner, chooseAIMove};
+    const scores = {
+        'X': -1,
+        ' ': 0,
+        'O': 1
+    };
+
+    function minimax(mark) { // X is minimizing, O is maximizing
+        const opponentMark = (mark === 'X') ? 'O' : 'X';
+        const res = checkWinner().mark;
+        if (res !== ' ' || getOptions().length === 0) 
+            return scores[res];
+        else {
+            let bestScore = 2 * scores[opponentMark];
+            getOptions().forEach(el => {
+                board[el[0]][el[1]] = mark;
+                const score = minimax(opponentMark);
+                board[el[0]][el[1]] = ' ';
+                if (mark === 'X')
+                    bestScore = (score < bestScore) ? score : bestScore;
+                else 
+                    bestScore = (score > bestScore) ? score : bestScore;
+            });
+            return bestScore;   
+        }
+    }
+
+    return {grid, reset, render, update, hint, hideHint, getWinner, chooseAIMove, isGameRunning};
 })(); // End of gameBoard Module;
 
 // GAME FLOW ---------------------------------------------------------------------
@@ -152,9 +197,6 @@ const gameFlow = (() => {
     const players = [playerFactory("X"), playerFactory("O")];
     players[0].toggleCanMove();
     let player = players.find(pl => pl.getMove());
-    // [...document.querySelectorAll('.comp-lvl')].forEach((el, ind) => el.textContent = players[ind].getAILvl())
-    let turnCounter = 1;
-    const getTurn = () => turnCounter;
     // caching DOM
     const playerTypes = [...document.querySelectorAll('.player-type')]
     const btnRestart = document.querySelector('.btn-restart');    
@@ -172,24 +214,18 @@ const gameFlow = (() => {
     setInterval(playOneTurn, 1500);
     
     function playOneTurn(event) {
-        const [ ai, id ] = (event !== undefined) 
+        const [ control, id ] = (event !== undefined) 
             ? [ 'person', event.target.dataset.id ]
             : [ 'computer', gameBoard.chooseAIMove(player.getMark(), player.getAILvl()) ]
-        if (turnCounter <= 9 && gameBoard.getWinner() === ' ' && player.getAI() === ai)
-            if (gameBoard.update(id, player.getMark())) {
-                players.forEach(pl => pl.toggleCanMove());    
-                player = players.find(pl => pl.getMove());
-                turnCounter += 1;
-            };
+        if (gameBoard.isGameRunning() && gameBoard.getWinner() === ' ' && player.getAI() === control)
+            if (gameBoard.update(id, player.getMark()))
+                togglePlayerTurn();
     };
 
     function restartGame() {
-        if (gameBoard.getWinner() === ' ') {
-            players.forEach(pl => pl.toggleCanMove());    
-            player = players.find(pl => pl.getMove());
-        }
+        if (gameBoard.getWinner() === ' ') 
+            togglePlayerTurn();
         gameBoard.reset();
-        turnCounter = 1;
     };
 
     function togglePlayerType(event) {
@@ -202,5 +238,9 @@ const gameFlow = (() => {
         }
     };
 
-    return {getTurn};
+    function togglePlayerTurn() {
+        players.forEach(pl => pl.toggleCanMove());    
+        player = players.find(pl => pl.getMove());
+    }
+
 })();
