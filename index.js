@@ -141,8 +141,8 @@ const gameBoard = ((size = 3) => {
                     board[el[0]][el[1]] = ' ';
                     return res;
                 });
-            // const bestScore = (mark === 'O') ? Math.max(...xxx) : Math.min(...xxx);
-                const bestScore = Math.max(...xxx);
+                const bestScore = (mark === 'O') ? Math.max(...xxx) : Math.min(...xxx);
+                // const bestScore = Math.max(...xxx);
                 arr = arr.filter((el, i) => xxx[i] === bestScore);
                 console.log(mark, scores[mark], 'ind', ind, 'xxx =', xxx);
             };
@@ -154,7 +154,7 @@ const gameBoard = ((size = 3) => {
     }
 
     function checkBoard(mark) { // returns matrix of false for empty positions, with true if filling position with 'mark' lead to win condition
-        // console.log(turnsLeft, getOptions());
+        // console.log(turnsLeft, getOptions());    
         return getOptions().map(el => {
             board[el[0]][el[1]] = mark;
             const res = checkWinner().mark !== ' ';
