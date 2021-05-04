@@ -1,8 +1,8 @@
 // PLAYERS --------------------------------------
 const playerFactory = (mark, aiLvl = '') => {
     const getMark = () => mark;
-    let _ai = 'person';
-    let _aiLvl = aiLvl;
+    let _ai = 'person'; // two options: 'computer', 'person'
+    let _aiLvl = aiLvl; // three AI levels: '', 'star_border', 'star'
     let _canMove = false;
     const getAI = () => _ai;
     const toggleAI = () => { _ai = (_ai === 'person') ? 'computer' : 'person'};
@@ -20,6 +20,8 @@ const gameBoard = ((size = 3) => {
     const getWinner = () => winner.mark;
     let turnsLeft = getOptions().length;
     const isGameRunning = () => turnsLeft > 0;
+    const opponentMark = (mark) => (mark === 'X') ? 'O' : 'X';
+    const randomIndex = (arr) => Math.floor(Math.random() * arr.length);
     // DOM caching 
     const grid = document.querySelector('.main-grid');
     const winnerDiv = document.querySelector('.winner');
@@ -69,14 +71,13 @@ const gameBoard = ((size = 3) => {
             element.textContent = ' ';
         }
     }
-
-    // board state update (mark placement / end game determination) on click
+    // board state update (mark placement / end game determination) on click or AI move
     function update(id, mark) {
         if (id && board[id[0]][id[1]] === ' ') {
             board[id[0]][id[1]] = mark;
             render();
-            turnsLeft = getOptions().length
-            if (turnsLeft <= 4) { // fastest win available at 5-th turn
+            turnsLeft = getOptions().length;
+            if (turnsLeft <= 4) { // fastest win available from 5-th turn
                 winner = checkWinner();
                 if (getWinner() !== ' ') {
                     const line = winner.line.split(',');
@@ -88,11 +89,11 @@ const gameBoard = ((size = 3) => {
                     winnerDiv.textContent = `It's a draw!`;
                 } 
             }
-            return true;    
+            return true; // successful updating board at (id[0]][id[1]) with (mark)
         }
-        return false;
+        return false; // not possible to update board
     };
-
+    // checking for winner 3 horizontal lines, 3 vertical and 2 diagonal
     function checkWinner() {
         const hCheck = () => { // check 3 horizontal lines 
             const res = [0,1,2].map((y) => (board[y][0] !== ' ') && board[y].every(el => el === board[y][0]))
@@ -109,11 +110,11 @@ const gameBoard = ((size = 3) => {
             res = res.map((val, ind) => val ? ['0','1','2'].map((el, i) => el + Math.abs(ind*2 - i)).join(',') : '');
             return res.filter(el => el !== '').join(',');
         }
-
-        const resCheck = [hCheck(), vCheck(), dCheck()].filter(el => el !== '').join(','); // string representing results of all checks
-        const ind = resCheck.split(',')[0];
+        // string: results of all checks
+        const resCheck = [hCheck(), vCheck(), dCheck()].filter(el => el !== '').join(',');
+        const pos = resCheck.split(',')[0]; // string: position of winning mark
         return (resCheck.length > 0)
-            ? { mark: board[ind[0]][ind[1]], line: resCheck }
+            ? { mark: board[pos[0]][pos[1]], line: resCheck }
             : { mark: ' ', line: '' }
     }
 
@@ -124,67 +125,52 @@ const gameBoard = ((size = 3) => {
     }
 
     function chooseAIMove(mark, aiLvl) {
-        let ind = -1;
-        let arr = getOptions();
-        const opponentMark = (mark === 'X') ? 'O' : 'X';
+        let options = getOptions();
+        let goodMoves = []; 
         if (aiLvl !== '') { // if ai logic is "starred" (better than lvl=0)
         // "star border" (lvl=1) logic: check for player instant win
-            ind = checkBoard(mark).indexOf(true);
+            goodMoves = options.filter((el, i) => checkBoard(mark)[i]);
         // "star border" (lvl=1) logic: check for opponent instant win
-            ind = (ind >= 0) ? ind : checkBoard(opponentMark).indexOf(true);
-        // "star" (lvl=2) logic
-            if (ind < 0 && aiLvl === 'star') {
-                const xxx = arr.map(el => {
-                    board[el[0]][el[1]] = mark;
-                    const res = minimax(opponentMark);
-                    board[el[0]][el[1]] = ' ';
-                    return res;
-                });
-                const bestScore = (mark === 'O') ? Math.max(...xxx) : Math.min(...xxx);
-                // const bestScore = Math.max(...xxx);
-                arr = arr.filter((el, i) => xxx[i] === bestScore);
-                // console.log(mark, scores[mark], 'ind', ind, 'xxx =', xxx);
+            if (goodMoves.length === 0)
+                goodMoves = options.filter((el, i) => checkBoard(opponentMark(mark))[i]);
+        // "star" (lvl=2) logic: minimax
+            if (goodMoves.length === 0 && aiLvl === 'star') {
+                const scores = options.map(el => minimax(el, mark));
+                goodMoves = options.filter((el, i) => scores[i] === Math.max(...scores));
             };
+            if (goodMoves.length > 0) options = [...goodMoves];
+        // additional logic for 'both start lvls': if possible filter options to make two (mark) in a row
+            if (options.length > 2) { 
+                const scores = checkBoard(mark, true, options);
+                goodMoves = options.filter((el, i) => scores[i]);
+                if (goodMoves.length > 0) options = [...goodMoves];
+            }
         };
-
-        ind = (ind >= 0) ? ind : Math.floor(Math.random() * arr.length); 
-        // console.log(arr, arr[ind]);
-        return arr[ind];
+        return options[randomIndex(options)];
     }
-
-    function checkBoard(mark) { // returns matrix of false for empty positions, with true if filling position with 'mark' lead to win condition
-        return getOptions().map(el => {
+    // returns matrix of false for empty positions, with true if filling position with 'mark' lead to win condition
+    function checkBoard(mark, deep = false, options = getOptions()) {
+        return options.map(el => {
             board[el[0]][el[1]] = mark;
-            const res = checkWinner().mark !== ' ';
+            const res = (deep) 
+                        ? checkBoard(mark).includes(true)
+                        : checkWinner().mark !== ' ';
             board[el[0]][el[1]] = ' ';
             return res;
         });
     };
-
-    const scores = {
-        'X': -1,
-        ' ': 0,
-        'O': 1
-    };
-
-    function minimax(mark) { // X is minimizing, O is maximizing
-        const opponentMark = (mark === 'X') ? 'O' : 'X';
-        const res = checkWinner().mark;
-        if (res !== ' ' || getOptions().length === 0) 
-            return scores[res];
-        else {
-            let bestScore = 2 * scores[opponentMark];
-            getOptions().forEach(el => {
-                board[el[0]][el[1]] = mark;
-                const score = minimax(opponentMark);
-                board[el[0]][el[1]] = ' ';
-                if (mark === 'X')
-                    bestScore = (score < bestScore) ? score : bestScore;
-                else 
-                    bestScore = (score > bestScore) ? score : bestScore;
-            });
-            return bestScore;   
-        }
+    // Refactored MINIMAX function
+    function minimax(el, mark) { // (mark) player is maximizing on each turn
+        let bestScore = - 2;
+        board[el[0]][el[1]] = mark; // update board one move forward
+        if (checkWinner().mark !== ' ') // player (mark) wins
+            bestScore = 1;
+        else if (getOptions().length === 0) // a draw, no more options
+            bestScore = 0;
+        else // get opponent's best move (with "-")
+            bestScore = - Math.max(...getOptions().map(el => minimax(el, opponentMark(mark))));
+        board[el[0]][el[1]] = ' '; // restore board one move back
+        return bestScore;
     }
 
     return {grid, reset, render, update, hint, hideHint, getWinner, chooseAIMove, isGameRunning};
@@ -194,13 +180,13 @@ const gameBoard = ((size = 3) => {
 const gameFlow = (() => {
     let minimaxCalculated = null; // to calculate minimax only once per turn
     const players = [playerFactory("X"), playerFactory("O")];
-    players[0].toggleCanMove();
+    players[0].toggleCanMove(); // First move to Player 'X'
     let player = players.find(pl => pl.getMove());
     // caching DOM
-    const playerTypes = [...document.querySelectorAll('.player-type')]
+    const playerTypes = [...document.querySelectorAll('.player-type')];
     const btnRestart = document.querySelector('.btn-restart');    
     // binding Events handlers
-    playerTypes.forEach(el => el.addEventListener('click', togglePlayerType.bind(el)))
+    playerTypes.forEach(el => el.addEventListener('click', togglePlayerType.bind(el)));
     btnRestart.addEventListener('click', restartGame);        
     // show/hide hints
     gameBoard.grid.addEventListener('mouseover', (event) => gameBoard.hint(event.target.dataset.id, player.getMark()));
@@ -213,18 +199,17 @@ const gameFlow = (() => {
     setInterval(playOneTurn, 1000);
     
     function playOneTurn(event) {
-        if (!minimaxCalculated && player.getAI() === 'computer') {
+        if (!minimaxCalculated && player.getAI() === 'computer')
             Promise.resolve(gameBoard.chooseAIMove(player.getMark(), player.getAILvl()))
                 .then(val => minimaxCalculated = val);
-        }
         const [ control, id ] = (event !== undefined) 
             ? [ 'person', event.target.dataset.id ]
-            : [ 'computer', minimaxCalculated ]
+            : [ 'computer', minimaxCalculated ];
         if (gameBoard.isGameRunning() && gameBoard.getWinner() === ' ' && player.getAI() === control)
             if (gameBoard.update(id, player.getMark())) {
                 togglePlayerTurn();
                 minimaxCalculated = null;
-            }
+            };
     };
 
     function restartGame() {
