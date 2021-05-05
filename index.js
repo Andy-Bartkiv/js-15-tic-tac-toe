@@ -43,8 +43,9 @@ const gameBoard = ((size = 3) => {
         [...grid.children].forEach((el, ind) => {
             el.textContent = board[Math.floor(ind/size)][ind % size];
             el.classList.remove('hint', 'winner-cell');
-            playerMarks.forEach(el => el.classList.toggle('mark-highlight'));
-        })
+        });
+        playerMarks.forEach(el => el.classList.toggle('mark-highlight'));
+        playerMarks.forEach(el => el.classList.toggle('mark-animation'));
     };
 
     function reset() {
@@ -52,25 +53,27 @@ const gameBoard = ((size = 3) => {
         winner = { mark: ' ', line: ''};
         winnerDiv.textContent = `TIC - TAC - TOE`;
         playerMarks.forEach(el => el.classList.remove('mark-tie'));
+        playerMarks.forEach(el => 
+            {if (el.classList.contains('mark-highlight')) el.classList.add('mark-animation')});        
         render();
         turnsLeft = getOptions().length;
     };
 
-    // at hover show if placing mark at cell is possible 
+    // at hover show if placing mark at specific cell is possible 
     function hint(id, mark) {
         if (id && board[id[0]][id[1]] === ' ') {
             const element = [...grid.children].find(el => el.dataset.id === id);
             element.classList.add('hint')
             element.textContent = mark;
-        }
-    }
+        };
+    };
     function hideHint(id) {
         if (board[id[0]][id[1]] === ' ') {
             const element = [...grid.children].find(el => el.dataset.id === id);
             element.classList.remove('hint')
             element.textContent = ' ';
-        }
-    }
+        };
+    };
     // board state update (mark placement / end game determination) on click or AI move
     function update(id, mark) {
         if (id && board[id[0]][id[1]] === ' ') {
@@ -84,8 +87,10 @@ const gameBoard = ((size = 3) => {
                     [...grid.children].filter(el => line.includes(el.dataset.id)).forEach(el => el.classList.add('winner-cell'))
                     winnerDiv.textContent = `Player  ${getWinner()}  wins!` ;
                     playerMarks.forEach(el => el.classList.toggle('mark-highlight'));
+                    playerMarks.forEach(el => el.classList.remove('mark-animation'));
                 } else if (turnsLeft <= 0) {
                     playerMarks.forEach(el => el.classList.add('mark-tie'));
+                    playerMarks.forEach(el => el.classList.remove('mark-animation'));
                     winnerDiv.textContent = `It's a draw!`;
                 } 
             }
@@ -215,6 +220,7 @@ const gameFlow = (() => {
     function restartGame() {
         if (gameBoard.getWinner() === ' ') 
             togglePlayerTurn();
+        minimaxCalculated = gameBoard.chooseAIMove(player.getMark(), '');
         gameBoard.reset();
     };
 
